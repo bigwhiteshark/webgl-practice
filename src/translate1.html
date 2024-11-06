@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用WebGL绘制平移三角形</title>
+    <script src="../libs/dat.gui.min.js"></script>
+
+    <script src="../libs/utils.js"></script>
+    <script src="./triangle.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec3 aPosition;
+      attribute vec3 aColor;
+      attribute vec3 aMovePos;
+      varying lowp vec3 vColor;
+
+      void main() {
+        vec3 pos=aPosition+aMovePos;
+        gl_Position =vec4(pos,1.0);
+        vColor=aColor;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying lowp vec3 vColor;
+
+      void main() {
+         gl_FragColor = vec4(vColor,1.0);
+      }
+    </script>
+    <script>
+      function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
+
+        var settings = {
+          x: 0.0,
+          y: 0.0
+        };
+        var gui = new dat.GUI();
+        gui.add(settings, 'x', -1, 1, 0.1).onChange(drawScene);
+        gui.add(settings, 'y', -1, 1, 0.1).onChange(drawScene);
+
+        function drawScene() {
+          cleanGl(gl);
+
+          gl.vertexAttrib3f(
+            gl.getAttribLocation(program, 'aMovePos'),
+
+            settings.x,
+            settings.y,
+            0.0
+          );
+
+          //画三角形
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+        drawScene();
+      }
+    </script>
+  </body>
+</html>

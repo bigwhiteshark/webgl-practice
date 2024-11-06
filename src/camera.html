@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+
+    <script src="../libs/utils.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec3 aPosition;
+      attribute vec3 aColor;
+      uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      varying lowp vec3 vColor;
+
+      void main() {
+        gl_Position = uProjectionMatrix*uModelViewMatrix * vec4(aPosition,1.0);
+        vColor=aColor;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying lowp vec3 vColor;
+
+      void main() {
+         gl_FragColor = vec4(vColor,1.0);
+      }
+    </script>
+    <script>
+      function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+        gl.enable(gl.CULL_FACE);
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
+        initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+        initProjectionMatrix(gl);
+
+        var settings = {
+          x: 0,
+          y: 10,
+          z: -10
+        };
+        drawScene();
+
+        var gui = new dat.GUI();
+        for (let k in settings) {
+          gui.add(settings, k, -10, 10).onChange(drawScene);
+        }
+
+        function drawScene() {
+          var numFs = 5;
+          var radius = 2;
+
+          var projectionMatrix = initProjectionMatrix(gl);
+
+          var cameraMatrix = mat4.create();
+
+          mat4.lookAt(cameraMatrix, [settings.x, settings.y, settings.z], [0, 0, 0], [0, 1, 0]);
+          var cubePos = [
+            { pos: [0, 0, 0], rotate: [0, Math.PI * 0.5, 0] },
+            { pos: [2, 2, 2], rotate: [Math.PI * 0.5, 0, Math.PI * 0.5] },
+            { pos: [-2, -2, -2], rotate: [0, 0, 0] }
+          ];
+          for (let i = 0; i < cubePos.length; i++) {
+            var p = cubePos[i];
+            var matrix = mat4.create();
+            mat4.set(matrix, ...cameraMatrix);
+            mat4.translate(matrix, cameraMatrix, p.pos);
+
+            gl.uniformMatrix4fv(
+              gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
+              false,
+              matrix
+            );
+
+            gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
